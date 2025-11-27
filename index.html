@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极速赛车智能规律预测（冷热转换稳定版 V5.6 精简回测100期）</title>
+    
+    <style>
+        /* ========================================= */
+        /* I. 主页面通用样式 (保持稳定) */
+        /* ========================================= */
+        body { font-family: 'Arial', sans-serif; margin: 0; padding: 0 10px; background-color: #f0f2f5; font-size: 12px; overflow-x: hidden; }
+        .container { max-width: 768px; width: 100%; margin: 10px auto; background-color: #fff; padding: 10px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #333; text-align: center; margin-bottom: 10px; font-size: 1.2em; }
+        #status-message { padding: 5px; color: #d9534f; font-weight: bold; margin-bottom: 10px; text-align: center; font-size: 1em; }
+
+        /* 顶部信息卡 */
+        #top-info-card { background-color: #f5f5f5; padding: 15px 10px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #ddd; }
+        #latest-issue-title { font-size: 1.1em; color: #007bff; margin-bottom: 8px; font-weight: bold; }
+        #latest-numbers-display { display: flex; justify-content: space-evenly; margin-bottom: 15px; }
+        #countdown-section { text-align: center; font-size: 1.2em; font-weight: bold; color: #d9534f; padding-top: 5px; border-top: 1px dashed #ccc; }
+        
+        /* 顶部大球样式 */
+        .top-ball { display: inline-flex; width: 28px; height: 28px; line-height: 28px; border-radius: 0; color: white; font-size: 14px; font-weight: bold; flex-shrink: 0; align-items: center; justify-content: center; margin: 0 1px; box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2); }
+
+        /* 历史表格样式 */
+        #data-table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; margin-top: 10px; }
+        #data-table th, #data-table td { border: 1px solid #ddd; padding: 3px 1px; text-align: center; vertical-align: middle; }
+        #data-table th { background-color: #007bff; color: white; font-weight: bold; }
+        #data-table tbody tr:nth-child(odd) { background-color: #f9f9f9; }
+        .balls-container { display: flex; justify-content: space-evenly; align-items: center; flex-wrap: nowrap; padding: 0; }
+        
+        /* 历史表格中的小球样式 */
+        .ball { display: inline-flex; width: 20px; height: 20px; line-height: 20px; border-radius: 0; color: white; font-size: 11px; font-weight: bold; flex-shrink: 0; align-items: center; justify-content: center; margin: 0; }
+        
+        /* 极速赛车号码颜色定义 (1-10) - 保持不变 */
+        .color-1 { background-color: #f08346; } .color-2 { background-color: #5587f7; } 
+        .color-3 { background-color: #4dc54b; } .color-4 { background-color: #f24e6a; } 
+        .color-5 { background-color: #9258df; } .color-6 { background-color: #26c0c4; } 
+        .color-7 { background-color: #909090; } .color-8 { background-color: #efb932; } 
+        .color-9 { background-color: #c0879f; } .color-10 { background-color: #208759; } 
+
+        /* 预测按钮 - 主页唯一的功能按钮 */
+        .view-switch-button { background-color: #ffc107; color: #333; border: none; padding: 10px 15px; border-radius: 4px; width: 100%; margin-bottom: 15px; font-size: 1.1em; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+
+
+        /* ========================================= */
+        /* II. 预测视图专属样式 */
+        /* ========================================= */
+        
+        #prediction-home-view, #model-detail-view { background-color: #fff; padding: 10px; }
+
+        /* 返回按钮 */
+        .back-button { background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; margin-bottom: 15px; cursor: pointer; }
+        
+        /* 智能筛选结果卡片 (高亮显示) */
+        #smart-prediction-card {
+            background-color: #e6f7ff; 
+            border: 2px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        
+        /* 预测号码方块 (用于预测包围) */
+        .predict-ball {
+            display: inline-flex;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            border-radius: 50%; 
+            background-color: #dc3545; 
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            align-items: center;
+            justify-content: center;
+            margin: 0 2px;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 详情列表 */
+        #lane-buttons-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .lane-button {
+            padding: 10px;
+            background-color: #f8f9fa; 
+            color: #333; 
+            border: 1px solid #ddd; 
+            border-radius: 4px;
+            font-size: 0.9em;
+            text-align: left;
+            cursor: pointer;
+        }
+        .result-win { color: green; font-weight: bold; } 
+        .result-loss { color: red; font-weight: bold; } 
+
+        /* 回测表格 */
+        #backtest-table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 15px; }
+        #backtest-table th, #backtest-table td { border: 1px solid #ddd; padding: 5px; text-align: center; }
+        #backtest-table th { background-color: #e9ecef; color: #333; }
+    </style>
+</head>
+<body onload="fetchHistoryData()">
+
+<div class="container">
+    <div id="main-view">
+        <h1>极速赛车实时开奖</h1>
+        
+        <div id="top-info-card">
+            <div id="latest-issue-title">最新开奖期号：<span id="latest-issue">--</span></div>
+            <div id="latest-numbers-display">
+                <p id="latest-loading-text">正在加载最新开奖...</p>
+            </div>
+            <div id="countdown-section">
+                <span id="next-issue">下一期：--</span> 倒计时：<span id="countdown-timer">--</span>
+            </div>
+        </div>
+        
+        <div id="status-message">正在连接 API 获取数据...</div>
+
+        <button class="view-switch-button" onclick="showView('prediction-home-view')">预测系统</button>
+
+        <h2>历史开奖记录</h2>
+        <table id="data-table">
+            <colgroup><col style="width: 20%;"><col style="width: 15%;"><col></colgroup>
+            <thead>
+                <tr>
+                    <th>期号</th><th>时间</th><th>开奖号码 (1~10位)</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+
+    <div id="prediction-home-view" style="display:none;">
+        <button class="back-button" onclick="showView('main-view')">← 返回主页</button>
+        
+        <div id="smart-prediction-card">
+            <div id="smart-selection-result">
+                <div class="prediction-line" style="color: green; margin-bottom: 15px;">
+                    🎯 **最优连对：** <span id="best-lane-display">--</span> 
+                    <span style="float: right;">连中 <span id="best-consecutive-display">--</span> 期</span>
+                </div>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <span id="best-predict-numbers">--</span>
+                </div>
+
+                <div class="prediction-line" style="color: red; margin-bottom: 15px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                    📉 **最大连错：** <span id="worst-lane-display">--</span> 
+                    <span style="float: right;">连错 <span id="worst-consecutive-display">--</span> 期</span>
+                </div>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <span id="worst-predict-numbers">--</span>
+                </div>
+
+                <div style="text-align: center; border-top: 1px dashed #ccc; padding-top: 10px; font-size: 1.1em; font-weight: bold; color: #333;">
+                    ✅ **平均命中率 (近20期)：** <span id="avg-hit-rate">--</span>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="text-align:center; color:#333;">仅供参考价值有问题联系tg:@lipu3888888</h2>
+        <div id="lane-buttons-container">
+        </div>
+    </div>
+
+    <div id="model-detail-view" style="display:none;">
+        <button class="back-button" onclick="showView('prediction-home-view')">← 返回预测主页</button>
+        <div id="detail-header">
+            <h2 id="detail-title" style="font-size: 1.4em;"></h2>
+            
+            <div id="detail-prediction-area" style="text-align:center; margin-top: 15px; border: 1px solid #007bff; padding: 10px; border-radius: 4px;">
+                <div class="prediction-line">
+                    下一期预测包围号码：
+                    <span id="detail-predict-numbers">--</span>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 10px; font-weight: bold;">
+                近100期命中率：<span id="detail-hit-rate">--</span>
+            </div>
+        </div>
+        
+        <h3 style="color:#333;">模型回测记录 (近100期)</h3>
+        <table id="backtest-table">
+            <colgroup><col style="width: 20%;"><col style="width: 30%;"><col style="width: 15%;"><col style="width: 18%;"><col style="width: 17%;"></colgroup>
+            <thead>
+                <tr>
+                    <th>期号</th>
+                    <th>预测包围</th>
+                    <th>实际开奖</th>
+                    <th>命中</th>
+                    <th>连对/错</th>
+                </tr>
+            </thead>
+            <tbody id="backtest-table-body">
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    const API_URL = 'https://1689689.com/api/pks/getPksHistoryList.do?lotCode=10037'; 
+    const MAX_HISTORY_LENGTH = 100; // V5.6 更改：回测记录长度增加到 100
+    const API_DATA_LIMIT = 50; // API最多返回50期，实际回测长度受此限制，但模型内存储100
+    const MIN_HISTORY_FOR_PREDICTION = 21; // 至少需要 20期做计算基准 + 1期开奖结果
+
+    let timerInterval;
+    let currentLatestIssue = 0; 
+    let historyDataCache = []; 
+    let predictionModels = []; 
+    let smartSelection = {
+        best: { lane: '--', ruleName: '初始化', prediction: [], consecutive: 0 },
+        worst: { lane: '--', ruleName: '初始化', prediction: [], consecutive: 0 },
+        avgHitRate: '0.00%',
+    }; 
+
+    // 规律定义
+    const RULES = {
+        'G4': '神王转换 (20期统计)',
+    };
+    
+    // 初始化模型结构
+    function initializeModels() {
+        predictionModels = [];
+        for (let i = 1; i <= 10; i++) {
+            const laneModel = { lane: i, rules: {} };
+            laneModel.rules['G4'] = {
+                ruleId: 'G4',
+                ruleName: RULES['G4'],
+                predictionHistory: [],    // 记录最多 100 期回测历史
+                nextPredictNumbers: [],   
+                lastPredictNumbers: [],   
+                consecutive: 0,           
+                isWin: true,              
+                lastPredictType: 'HOT',
+                hitRate: '0.00%'
+            };
+            predictionModels.push(laneModel);
+        }
+        smartSelection.best = { lane: '--', ruleName: '初始化', prediction: [], consecutive: 0 };
+        smartSelection.worst = { lane: '--', ruleName: '初始化', prediction: [], consecutive: 0 };
+        smartSelection.avgHitRate = '0.00%';
+    }
+    
+    // 切换视图函数
+    function showView(viewId, lane = null, ruleId = null) {
+        document.getElementById('main-view').style.display = 'none';
+        document.getElementById('prediction-home-view').style.display = 'none';
+        document.getElementById('model-detail-view').style.display = 'none';
+
+        if (viewId === 'prediction-home-view') {
+            updateSmartSelectionDisplay();
+            generateLaneButtons();
+        } else if (viewId === 'model-detail-view' && lane !== null && ruleId !== null) {
+            renderModelDetail(lane, ruleId);
+        }
+        document.getElementById(viewId).style.display = 'block';
+    }
+
+    // ************************************
+    // ** 核心规律预测函数：冷热码转换 (G4) **
+    // ************************************
+
+    /**
+     * 统计指定车道在近20期的冷热号，并返回 8 码的包围圈。
+     * 逻辑保持不变。
+     */
+    function getHotColdEnclosures(targetLane, historyRecords) {
+        if (historyRecords.length < 20) return { hot: [], cold: [] }; 
+
+        const laneIndex = targetLane - 1;
+        const countMap = {};
+        const allNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        
+        // 统计这 20 期数据的出现次数
+        for (let i = 0; i < 20; i++) {
+            const result = historyRecords[i].preDrawCode.split(',').map(n => parseInt(n));
+            const num = result[laneIndex];
+            countMap[num] = (countMap[num] || 0) + 1;
+        }
+
+        const sortedNumbersByCount = allNumbers
+            .map(num => ({ num, count: countMap[num] || 0 }))
+            .sort((a, b) => {
+                if (b.count !== a.count) {
+                    return b.count - a.count; 
+                }
+                return a.num - b.num; 
+            });
+        
+        const hotEight = sortedNumbersByCount.slice(0, 8).map(item => item.num).sort((a, b) => a - b);
+        const coldEight = sortedNumbersByCount.slice(2, 10).map(item => item.num).sort((a, b) => a - b);
+        
+        return { hot: hotEight, cold: coldEight };
+    }
+    
+    /**
+     * 计算模型命中率（近 N 期）。
+     * @param {Array<Object>} history - 预测历史记录。
+     * @returns {string} 命中率百分比字符串。
+     */
+    function calculateHitRate(history) {
+        if (history.length === 0) return '0.00%';
+        const wins = history.filter(entry => entry.correct).length;
+        const rate = (wins / history.length) * 100;
+        return rate.toFixed(2) + '%';
+    }
+
+
+    /**
+     * 核心逻辑：执行单期回测和预测。
+     */
+    function runSinglePrediction(currentHistory, model, latestRecord) {
+        const targetLane = model.lane; 
+        const rule = model.rules['G4']; 
+        
+        const { hot: hotEnclosure, cold: coldEnclosure } = getHotColdEnclosures(targetLane, currentHistory);
+        
+        // 2. 回测上一期 (latestRecord)
+        const lastPredictNumbers = rule.lastPredictNumbers;
+        const lastPredictType = rule.lastPredictType;
+        const latestResult = latestRecord.preDrawCode.split(',').map(n => parseInt(n));
+
+        if (lastPredictNumbers.length > 0) {
+            const actualNumber = latestResult[targetLane - 1];
+            const isCorrect = lastPredictNumbers.includes(actualNumber);
+            
+            // 更新连对/连错计数
+            if (isCorrect) {
+                rule.consecutive = rule.isWin ? rule.consecutive + 1 : 1;
+                rule.isWin = true;
+                rule.nextPredictType = lastPredictType;
+            } else {
+                rule.consecutive = rule.isWin ? 1 : rule.consecutive + 1;
+                rule.isWin = false;
+                rule.nextPredictType = (lastPredictType === 'HOT') ? 'COLD' : 'HOT';
+            }
+            
+            // 记录回测历史 (V5.6: 长度限制 MAX_HISTORY_LENGTH)
+            const historyEntry = {
+                issue: latestRecord.preDrawIssue,
+                predictedNumbers: lastPredictNumbers.join(','), 
+                actual: actualNumber,
+                correct: isCorrect,
+                consecutive: rule.consecutive,
+                isWin: rule.isWin,
+                predictType: lastPredictType
+            };
+            rule.predictionHistory.unshift(historyEntry); 
+            if (rule.predictionHistory.length > MAX_HISTORY_LENGTH) rule.predictionHistory.pop();
+            
+            // 计算并更新命中率 (基于当前所有的回测记录)
+            rule.hitRate = calculateHitRate(rule.predictionHistory);
+        } else {
+            rule.nextPredictType = 'HOT'; 
+            rule.hitRate = '0.00%';
+        }
+
+        // 3. 预测下一期 
+        const nextType = rule.nextPredictType;
+        let newPrediction;
+        if (nextType === 'HOT') {
+            newPrediction = hotEnclosure;
+        } else {
+            newPrediction = coldEnclosure;
+        }
+        
+        rule.nextPredictNumbers = newPrediction;
+        rule.lastPredictNumbers = newPrediction; 
+        rule.lastPredictType = nextType; 
+
+        return { 
+            isWin: rule.isWin, 
+            consecutive: rule.consecutive, 
+            nextPredictNumbers: newPrediction,
+            hitRate: rule.hitRate 
+        };
+    }
+    
+    /**
+     * 初始加载时，利用历史数据，从最旧到最新，模拟回测，生成初始预测记录。
+     */
+    function recalculateInitialPrediction(historyRecords) {
+        const N = historyRecords.length;
+        if (N < MIN_HISTORY_FOR_PREDICTION) {
+            initializeModels(); 
+            return;
+        }
+
+        initializeModels(); 
+        
+        // 循环起点：i = N - 20。 
+        // 确保用于计算冷热的 currentHistory 始终有 20 期数据。
+        // 如果 N=35，i 从 15 开始，到 1 结束。共 15 次回测。
+        // 如果 N=50，i 从 30 开始，到 1 结束。共 30 次回测。
+        const startIdx = N - 20;
+        
+        // 追踪最优和最差
+        let maxWinConsecutive = -1;
+        let maxLossConsecutive = -1;
+        let bestSelection = { lane: '--', ruleName: '无稳定规律', prediction: [], consecutive: 0 };
+        let worstSelection = { lane: '--', ruleName: '无稳定规律', prediction: [], consecutive: 0 };
+        
+        const totalRuns = N - 20;
+        let totalHitCount = 0;
+
+        for (let i = startIdx; i > 0; i--) {
+            // currentHistory: 用于计算冷热的 20 期数据 (API 记录的索引 i 到 i+19)
+            const currentHistory = historyRecords.slice(i, i + 20); 
+            
+            // latestRecord: 实际开奖的那一期 (API 记录的索引 i-1)
+            const latestRecord = historyRecords[i - 1]; 
+            
+            predictionModels.forEach(model => {
+                const results = runSinglePrediction(currentHistory, model, latestRecord);
+
+                // 仅在最后一次循环 (i=1，即最新一期回测完毕后) 更新全局智能选择
+                if (i === 1) {
+                    const rule = model.rules['G4'];
+                    
+                    // 追踪最优连对
+                    if (rule.isWin && rule.consecutive > maxWinConsecutive) {
+                        maxWinConsecutive = rule.consecutive;
+                        bestSelection = {
+                            lane: model.lane,
+                            ruleName: rule.ruleName,
+                            prediction: rule.nextPredictNumbers,
+                            consecutive: maxWinConsecutive
+                        };
+                    }
+                    // 追踪最大连错
+                    if (!rule.isWin && rule.consecutive > maxLossConsecutive) {
+                        maxLossConsecutive = rule.consecutive;
+                        worstSelection = {
+                            lane: model.lane,
+                            ruleName: rule.ruleName,
+                            prediction: rule.nextPredictNumbers,
+                            consecutive: maxLossConsecutive
+                        };
+                    }
+                }
+            });
+        }
+        
+        // 4. 计算所有模型在近20期的平均命中率 (使用最新生成的记录)
+        let totalWinCountLast20 = 0;
+        let totalCheckCountLast20 = 0;
+
+        predictionModels.forEach(model => {
+            const history = model.rules['G4'].predictionHistory.slice(0, 20); // 只看近 20 期
+            totalCheckCountLast20 += history.length;
+            totalWinCountLast20 += history.filter(entry => entry.correct).length;
+        });
+
+        // 5. 更新全局智能筛选结果
+        smartSelection.best = bestSelection;
+        smartSelection.worst = worstSelection;
+        if (totalCheckCountLast20 > 0) {
+            const avgRate = (totalWinCountLast20 / totalCheckCountLast20) * 100;
+            smartSelection.avgHitRate = avgRate.toFixed(2) + '%';
+        } else {
+             smartSelection.avgHitRate = '0.00%';
+        }
+        
+        console.log(`🎉 初始回测完成！已生成 ${totalRuns} 期预测记录。`);
+    }
+
+
+    /**
+     * 增量更新：只处理 API 返回的最新一期数据。
+     */
+    function monitorHistoryAndPredict(historyRecords) {
+        if (!historyRecords || historyRecords.length < MIN_HISTORY_FOR_PREDICTION) return;
+        
+        const latestRecord = historyRecords[0];
+        const latestIssue = parseInt(latestRecord.preDrawIssue);
+
+        if (latestIssue === currentLatestIssue) return;
+        currentLatestIssue = latestIssue;
+
+        let maxWinConsecutive = -1;
+        let maxLossConsecutive = -1;
+        let bestSelection = { lane: '--', ruleName: '无稳定规律', prediction: [], consecutive: 0 };
+        let worstSelection = { lane: '--', ruleName: '无稳定规律', prediction: [], consecutive: 0 };
+        
+        let totalWinCountLast20 = 0;
+        let totalCheckCountLast20 = 0;
+
+
+        predictionModels.forEach(model => {
+            // 用于计算冷热的 20 期数据是 historyRecords 的 [1] 到 [20]
+            const currentHistory = historyRecords.slice(1, 21); 
+            const results = runSinglePrediction(currentHistory, model, latestRecord);
+            
+            // 追踪最优连对
+            if (results.isWin && results.consecutive > maxWinConsecutive) {
+                maxWinConsecutive = results.consecutive;
+                bestSelection = {
+                    lane: model.lane,
+                    ruleName: model.rules['G4'].ruleName,
+                    prediction: results.nextPredictNumbers,
+                    consecutive: maxWinConsecutive
+                };
+            }
+             // 追踪最大连错
+            if (!results.isWin && results.consecutive > maxLossConsecutive) {
+                maxLossConsecutive = results.consecutive;
+                worstSelection = {
+                    lane: model.lane,
+                    ruleName: model.rules['G4'].ruleName,
+                    prediction: results.nextPredictNumbers,
+                    consecutive: maxLossConsecutive
+                };
+            }
+            
+            // 统计命中率数据
+            const history = model.rules['G4'].predictionHistory.slice(0, 20);
+            totalCheckCountLast20 += history.length;
+            totalWinCountLast20 += history.filter(entry => entry.correct).length;
+        });
+        
+        // 更新全局智能筛选结果
+        smartSelection.best = bestSelection;
+        smartSelection.worst = worstSelection;
+        if (totalCheckCountLast20 > 0) {
+            const avgRate = (totalWinCountLast20 / totalCheckCountLast20) * 100;
+            smartSelection.avgHitRate = avgRate.toFixed(2) + '%';
+        } else {
+             smartSelection.avgHitRate = '0.00%';
+        }
+    }
+
+
+    // ************************************
+    // ** API & Timer Logic (保持不变) **
+    // ************************************
+
+    function startCountdown(preDrawTimeStr, preDrawIssue) {
+        if (timerInterval) clearInterval(timerInterval);
+        const preDrawTime = new Date(preDrawTimeStr.replace(/-/g, "/"));
+        const nextDrawTime = new Date(preDrawTime.getTime() + 60000); 
+        const nextIssue = parseInt(preDrawIssue) + 1;
+        document.getElementById('next-issue').textContent = `下一期：${nextIssue}`;
+        const timerElement = document.getElementById('countdown-timer');
+
+        function updateTimer() {
+            const now = new Date();
+            let difference = nextDrawTime - now;
+            if (difference <= 0) {
+                if (timerInterval) clearInterval(timerInterval); 
+                timerElement.textContent = '等待开奖...';
+                document.getElementById('status-message').textContent = '🔄 正在检查最新开奖结果...';
+                timerInterval = setInterval(checkForNewData, 1000, nextIssue);
+                return;
+            }
+            const totalSeconds = Math.floor(difference / 1000);
+            const seconds = String(totalSeconds).padStart(2, '0');
+            timerElement.textContent = `00:${seconds}`;
+        }
+        updateTimer();
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    async function checkForNewData(expectedNewIssue) {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            const newData = data.result.data;
+            if (!newData || newData.length === 0) return;
+
+            const newLatestIssue = parseInt(newData[0].preDrawIssue);
+            const latestRecord = newData[0];
+
+            if (newLatestIssue > currentLatestIssue) {
+                document.getElementById('status-message').textContent = '🎉 已更新到最新开奖！正在分析规律...';
+                if (timerInterval) clearInterval(timerInterval); 
+                
+                historyDataCache.unshift(latestRecord);
+                if (historyDataCache.length > API_DATA_LIMIT) historyDataCache.pop(); // 保持API数据限制
+                
+                monitorHistoryAndPredict(historyDataCache); 
+                
+                renderLatestResultCard(latestRecord);
+                insertNewHistoryRow(latestRecord); 
+                
+                startCountdown(latestRecord.preDrawTime, latestRecord.preDrawIssue);
+                
+                if (document.getElementById('prediction-home-view').style.display === 'block') {
+                    updateSmartSelectionDisplay();
+                    generateLaneButtons();
+                }
+
+            } else {
+                document.getElementById('status-message').textContent = `🔄 正在等待 ${expectedNewIssue} 期开奖结果...`;
+            }
+        } catch (error) {
+            document.getElementById('status-message').textContent = '⚠️ 检查数据失败，正在重试...';
+        }
+    }
+
+
+    async function fetchHistoryData() {
+        const statusMessage = document.getElementById('status-message');
+        const tableBody = document.getElementById('table-body');
+        
+        statusMessage.textContent = '正在连接 API 获取数据...';
+        tableBody.innerHTML = '';
+
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error(`HTTP 错误！状态码: ${response.status}`);
+            const data = await response.json();
+            
+            historyDataCache = data.result.data;
+
+            if (!historyDataCache || historyDataCache.length === 0) {
+                statusMessage.textContent = '✅ 数据获取成功，但历史记录为空。';
+                return;
+            }
+            
+            // 1. 渲染历史表格
+            historyDataCache.forEach((record) => {
+                const issue = record.preDrawIssue;
+                const openTime = record.preDrawTime.split(' ')[1].substring(0, 5); 
+                const numbers = record.preDrawCode.split(',').map(num => parseInt(num));
+                if (numbers.length !== 10) return;
+                let row = tableBody.insertRow(); 
+                row.insertCell().textContent = issue;
+                row.insertCell().textContent = openTime;
+                const ballsContainerCell = row.insertCell();
+                let ballsHTML = '<div class="balls-container">';
+                numbers.forEach((num) => { ballsHTML += renderBlockHTML(num, false); });
+                ballsHTML += '</div>';
+                ballsContainerCell.innerHTML = ballsHTML;
+            });
+
+            // 2. 核心：利用历史数据，从最旧到最新，模拟回测，生成初始预测记录
+            if (historyDataCache.length >= MIN_HISTORY_FOR_PREDICTION) { 
+                recalculateInitialPrediction(historyDataCache);
+            } else {
+                initializeModels();
+                statusMessage.textContent += ` (API数据不足${MIN_HISTORY_FOR_PREDICTION}期，暂无回测记录)`;
+            }
+            
+            // 3. 设置最新期号，渲染顶部卡片，并启动倒计时
+            const latestRecord = historyDataCache[0];
+            currentLatestIssue = parseInt(latestRecord.preDrawIssue); 
+            renderLatestResultCard(latestRecord);
+            startCountdown(latestRecord.preDrawTime, latestRecord.preDrawIssue);
+            
+
+            statusMessage.textContent = `✅ 加载成功！智能分析已就绪。`;
+            statusMessage.style.backgroundColor = '#d4edda';
+            statusMessage.style.color = '#155724';
+
+        } catch (error) {
+            console.error('API 数据获取失败:', error);
+            statusMessage.textContent = `❌ 数据获取失败: ${error.message} (请检查网络)`;
+            statusMessage.style.backgroundColor = '#f2dede';
+            statusMessage.style.color = '#a94442';
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                document.getElementById('countdown-timer').textContent = '加载失败';
+            }
+        }
+    }
+    
+    // ************************************
+    // ** 渲染函数 (V5.6 修改) **
+    // ************************************
+    function renderPredictBalls(predictNumbers) {
+        if (!predictNumbers || predictNumbers.length === 0) return '<span style="color:#999;">暂无包围圈</span>';
+        return predictNumbers.map(num => 
+            `<span class="predict-ball color-${num}">${num.toString().padStart(2, '0')}</span>`
+        ).join('');
+    }
+
+    function updateSmartSelectionDisplay() {
+        const best = smartSelection.best;
+        const worst = smartSelection.worst;
+
+        // 渲染最优连对
+        document.getElementById('best-lane-display').textContent = best.lane !== '--' ? `预测第 ${best.lane} 名` : '无稳定连对规律';
+        document.getElementById('best-consecutive-display').textContent = best.consecutive > 0 ? `${best.consecutive}` : '--';
+        document.getElementById('best-predict-numbers').innerHTML = renderPredictBalls(best.prediction);
+
+        // 渲染最大连错
+        document.getElementById('worst-lane-display').textContent = worst.lane !== '--' ? `预测第 ${worst.lane} 名` : '无最大连错规律';
+        document.getElementById('worst-consecutive-display').textContent = worst.consecutive > 0 ? `${worst.consecutive}` : '--';
+        document.getElementById('worst-predict-numbers').innerHTML = renderPredictBalls(worst.prediction);
+        
+        // 渲染平均命中率
+        document.getElementById('avg-hit-rate').textContent = smartSelection.avgHitRate;
+    }
+
+    function generateLaneButtons() {
+        const container = document.getElementById('lane-buttons-container');
+        let html = '';
+        
+        predictionModels.forEach(model => {
+            const rule = model.rules['G4'];
+            const statusText = rule.isWin ? `连对 ${rule.consecutive}` : `连错 ${rule.consecutive}`;
+            const statusClass = rule.isWin ? 'result-win' : 'result-loss';
+            const predictDisplay = rule.nextPredictNumbers.length > 0 ? rule.nextPredictNumbers.length + ' 码包围' : '待预测';
+
+            html += `
+                <div class="lane-button" onclick="showView('model-detail-view', ${model.lane}, 'G4')">
+                    <div>
+                        **第 ${model.lane} 名** - ${rule.ruleName}
+                    </div>
+                    <div style="font-size: 0.9em; margin-top: 5px;">
+                        <span class="${statusClass}">${statusText}</span> | 预测: ${predictDisplay} (${rule.lastPredictType})
+                        <span style="float: right;">命中率: ${rule.hitRate}</span>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    function renderModelDetail(lane, ruleId) {
+        const model = predictionModels.find(m => m.lane === lane);
+        if (!model || !model.rules[ruleId]) return;
+        const rule = model.rules[ruleId];
+
+        document.getElementById('detail-title').textContent = `第 ${lane} 名 - ${rule.ruleName} 规律详情 (下一期预测: ${rule.lastPredictType})`;
+        document.getElementById('detail-predict-numbers').innerHTML = renderPredictBalls(rule.nextPredictNumbers);
+        document.getElementById('detail-hit-rate').textContent = rule.hitRate; // V5.6 新增命中率
+
+        const tableBody = document.getElementById('backtest-table-body');
+        tableBody.innerHTML = '';
+
+        rule.predictionHistory.forEach(entry => {
+            const resultClass = entry.correct ? 'result-win' : 'result-loss';
+            const resultText = entry.correct ? '✅ 命中' : '❌ 落空';
+            const statusText = entry.isWin ? `连对 ${entry.consecutive}` : `连错 ${entry.consecutive}`;
+            const predictType = entry.predictType === 'HOT' ? '白码' : '黑码';
+
+            const row = tableBody.insertRow();
+            row.insertCell().textContent = entry.issue;
+            row.insertCell().textContent = entry.predictedNumbers; 
+            row.insertCell().textContent = entry.actual;
+            row.insertCell().innerHTML = `<span class="${resultClass}">${resultText}</span>`;
+            row.insertCell().textContent = `${statusText} (${predictType})`;
+        });
+    }
+
+    function renderBlockHTML(num, isTopCard) {
+        const numStr = num.toString().padStart(2, '0');
+        const colorClass = `color-${num}`;
+        const sizeClass = isTopCard ? 'top-ball' : 'ball'; 
+        return `<span class="${sizeClass} ${colorClass}">${numStr}</span>`;
+    }
+
+    function renderLatestResultCard(record) {
+        const numbers = record.preDrawCode.split(',').map(num => parseInt(num));
+        const latestDisplay = document.getElementById('latest-numbers-display');
+        const latestIssueElement = document.getElementById('latest-issue');
+        latestIssueElement.textContent = record.preDrawIssue;
+        let ballsHTML = '<div class="balls-container">';
+        numbers.forEach((num) => { ballsHTML += renderBlockHTML(num, true); });
+        ballsHTML += '</div>';
+        latestDisplay.innerHTML = ballsHTML;
+        const loadingText = document.getElementById('latest-loading-text');
+        if (loadingText) loadingText.style.display = 'none';
+    }
+    
+    function insertNewHistoryRow(record) {
+        const tableBody = document.getElementById('table-body');
+        const issue = record.preDrawIssue;
+        const openTime = record.preDrawTime.split(' ')[1].substring(0, 5); 
+        const numbers = record.preDrawCode.split(',').map(num => parseInt(num));
+        if (numbers.length !== 10) return;
+
+        let row = tableBody.insertRow(0); 
+        
+        row.insertCell().textContent = issue;
+        row.insertCell().textContent = openTime;
+
+        const ballsContainerCell = row.insertCell();
+        let ballsHTML = '<div class="balls-container">';
+        numbers.forEach((num) => { ballsHTML += renderBlockHTML(num, false); });
+        ballsHTML += '</div>';
+        ballsContainerCell.innerHTML = ballsHTML;
+        
+        if (tableBody.rows.length > API_DATA_LIMIT) { 
+            tableBody.deleteRow(API_DATA_LIMIT); 
+        }
+    }
+</script>
+
+</body>
+</html>
